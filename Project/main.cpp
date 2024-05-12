@@ -61,11 +61,34 @@ public:
             case 1: glColor3f(1.0, 0.0, 0.0);break;
             case 2: glColor3f(0.0, 0.0, 1.0);
         }
-        glBegin(GL_QUADS);
-        glVertex2i(x - 10, y - 10);
-        glVertex2i(x - 10, y + 10);
-        glVertex2i(x + 10, y + 10);
-        glVertex2i(x + 10, y - 10);
+        glBegin(GL_QUADS);//head
+            glVertex2i(x-3,y+4);
+            glVertex2i(x-3,y+10);
+            glVertex2i(x+3,y+10);
+            glVertex2i(x+3,y+4);
+
+        glBegin(GL_QUADS);//body
+            glVertex2i(x-2,y-3);
+            glVertex2i(x-2,y+4);
+            glVertex2i(x+2,y+4);
+            glVertex2i(x+2,y-3);
+
+        glBegin(GL_QUADS);//arms
+            glVertex2i(x-5,y+2);
+            glVertex2i(x-5,y+3);
+            glVertex2i(x+5,y+3);
+            glVertex2i(x+5,y+2);
+
+        glBegin(GL_QUADS);//legs
+            glVertex2i(x-1,y-3);
+            glVertex2i(x-2,y-3);
+            glVertex2i(x-2,y-8);
+            glVertex2i(x-1,y-8);
+
+            glVertex2i(x+1,y-3);
+            glVertex2i(x+2,y-3);
+            glVertex2i(x+2,y-8);
+            glVertex2i(x+1,y-8);
         glEnd();
     }
 
