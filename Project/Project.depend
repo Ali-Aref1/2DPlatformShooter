@@ -1,6 +1,7 @@
 # depslib dependency file v1.0
-1715512702 source:c:\users\ali\documents\opengl\2dplatformshooter\project\main.cpp
+1715521326 source:c:\users\ali\documents\opengl\2dplatformshooter\project\main.cpp
 	<GL/glut.h>
+	<vector>
 	<stdio.h>
 
 1426342528 c:\program files (x86)\codeblocks\mingw\include\gl\glut.h

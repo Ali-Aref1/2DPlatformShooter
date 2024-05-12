@@ -1,20 +1,18 @@
+
 #include <GL/glut.h>
+#include <vector>
 #include <stdio.h>
 
 int phyWidth = 700;
 int phyHeight = 700;
 int logWidth = 100;
 int logHeight = 100;
-int centerX = logWidth / 2;
-int centerY = logHeight / 2;
 
-// Define movement directions for WASD keys
 bool moveUpWASD = false;
 bool moveDownWASD = false;
 bool moveLeftWASD = false;
 bool moveRightWASD = false;
 
-// Define movement directions for arrow keys
 bool moveUpArrow = false;
 bool moveDownArrow = false;
 bool moveLeftArrow = false;
@@ -22,14 +20,84 @@ bool moveRightArrow = false;
 
 class GameObject {
 public:
+
+    int getY(){return y;}
+    int getX() {return x;}
+
+protected:
+    int x = 0;
+    int y = 0;
+    int moveSpeed = 1;
+
+};
+
+class Terrain : public GameObject {
+private:
+    int w;
+    int h;
+public:
+    int top;
+    int left;
+    int right;
+    int bottom;
+
+    Terrain(int x, int y, int w, int h) : GameObject() {
+        this->x = x;
+        this->y = y;
+        this->w = w;
+        this->h = h;
+        // Calculate bounds
+        top = y + h / 2;
+        left = x - w / 2;
+        right = x + w / 2;
+        bottom = y - h / 2;
+    }
+
+    void Render() {
+        glColor3f(1.0, 1.0, 0.0);
+        glBegin(GL_QUADS);
+        glVertex2i(left, bottom);
+        glVertex2i(left, top);
+        glVertex2i(right, top);
+        glVertex2i(right, bottom);
+        glEnd();
+    }
+};
+
+std::vector<Terrain> terrainObjects;
+
+class Player : public GameObject {
+private:
+    int num;
+    bool grounded=false;
+
+public:
     void moveRight() {
-        x += moveSpeed;
-        glutPostRedisplay();
+    // Check if there is any terrain obstructing the movement to the right
+    for (size_t i = 0; i < terrainObjects.size(); ++i) {
+        if (x + moveSpeed >= terrainObjects[i].left && x + moveSpeed <= terrainObjects[i].right && y >= terrainObjects[i].bottom && y <= terrainObjects[i].top) {
+            // If there is terrain in the way, exit the function without moving
+            return;
+        }
     }
-    void moveLeft() {
-        x -= moveSpeed;
-        glutPostRedisplay();
+    // If no terrain obstructs the movement, proceed to move the player to the right
+    x += moveSpeed;
+    glutPostRedisplay();
+}
+
+void moveLeft() {
+    // Check if there is any terrain obstructing the movement to the left
+    for (size_t i = 0; i < terrainObjects.size(); ++i) {
+        if (x - moveSpeed >= terrainObjects[i].left && x - moveSpeed <= terrainObjects[i].right && y >= terrainObjects[i].bottom && y <= terrainObjects[i].top) {
+            // If there is terrain in the way, exit the function without moving
+            return;
+        }
     }
+    // If no terrain obstructs the movement, proceed to move the player to the left
+    x -= moveSpeed;
+    glutPostRedisplay();
+}
+
     void moveUp() {
         y += moveSpeed;
         glutPostRedisplay();
@@ -38,60 +106,75 @@ public:
         y -= moveSpeed;
         glutPostRedisplay();
     }
-
-protected:
-    int x = 0;
-    int y = 0;
-
-private:
-    int moveSpeed = 1;
-};
-
-class Player : public GameObject {
-private:
-    int num;
-public:
     Player(int num, int x, int y) {
         this->num = num;
         this->x = x;
         this->y = y;
     }
+
+    bool isGrounded(){return grounded;}
     void Render() {
         switch(num){
-            case 1: glColor3f(1.0, 0.0, 0.0);break;
-            case 2: glColor3f(0.0, 0.0, 1.0);
+            case 1: glColor3f(1.0, 0.0, 0.0); break;
+            case 2: glColor3f(0.0, 0.0, 1.0); break;
         }
-        glBegin(GL_QUADS);//head
-            glVertex2i(x-3,y+4);
-            glVertex2i(x-3,y+10);
-            glVertex2i(x+3,y+10);
-            glVertex2i(x+3,y+4);
+        glBegin(GL_QUADS); // head
+            glVertex2i(x-3,y+3);
+            glVertex2i(x-3,y+9);
+            glVertex2i(x+3,y+9);
+            glVertex2i(x+3,y+3);
+        glEnd();
 
-        glBegin(GL_QUADS);//body
-            glVertex2i(x-2,y-3);
-            glVertex2i(x-2,y+4);
-            glVertex2i(x+2,y+4);
-            glVertex2i(x+2,y-3);
+        glBegin(GL_QUADS); // body
+            glVertex2i(x-2,y-4);
+            glVertex2i(x-2,y+3);
+            glVertex2i(x+2,y+3);
+            glVertex2i(x+2,y-4);
+        glEnd();
 
-        glBegin(GL_QUADS);//arms
+        glBegin(GL_QUADS); // arms
+            glVertex2i(x-5,y+1);
             glVertex2i(x-5,y+2);
-            glVertex2i(x-5,y+3);
-            glVertex2i(x+5,y+3);
             glVertex2i(x+5,y+2);
+            glVertex2i(x+5,y+1);
+        glEnd();
 
-        glBegin(GL_QUADS);//legs
-            glVertex2i(x-1,y-3);
-            glVertex2i(x-2,y-3);
-            glVertex2i(x-2,y-8);
-            glVertex2i(x-1,y-8);
+        glBegin(GL_QUADS); // legs
+            glVertex2i(x-1,y-4);
+            glVertex2i(x-2,y-4);
+            glVertex2i(x-2,y-9);
+            glVertex2i(x-1,y-9);
 
-            glVertex2i(x+1,y-3);
-            glVertex2i(x+2,y-3);
-            glVertex2i(x+2,y-8);
-            glVertex2i(x+1,y-8);
+            glVertex2i(x+1,y-4);
+            glVertex2i(x+2,y-4);
+            glVertex2i(x+2,y-9);
+            glVertex2i(x+1,y-9);
         glEnd();
     }
 
+    void Gravity(){
+    // Decrease Y value by 1 unit
+    if(!grounded){
+        y-=1;
+        glutPostRedisplay();
+
+    }
+    // Check if the player is standing on terrain
+    for (size_t i = 0; i < terrainObjects.size(); ++i) {
+        if (y-9 <= terrainObjects[i].top && x >= terrainObjects[i].left && x <= terrainObjects[i].right) {
+            y = terrainObjects[i].top + 9; // Adjust player's Y position to be on top of the terrain
+            grounded = true; // Set grounded to true
+            return; // Exit the function as the player is grounded
+        }
+        grounded=false;
+    }
+
+    grounded = false; // If no terrain is found, set grounded to false
+}
+
+    void Jump(){
+
+}
 
 };
 
@@ -109,13 +192,23 @@ void Display() {
 
     player1.Render();
     player2.Render();
+
+    for (size_t i = 0; i < terrainObjects.size(); ++i) {
+        terrainObjects[i].Render();
+    }
+
     glutSwapBuffers();
     glFlush();
 }
 
-void updatePlayerMovement() { //Update player position live, creates more smooth inputs and allows simultaneous input of Player 1 and Player 2
+void updatePlayerMovement() {
+    player1.Gravity();
+    player2.Gravity();
+
+
+
     if (moveUpWASD)
-        player1.moveUp();
+        player1.Jump();
     if (moveDownWASD)
         player1.moveDown();
     if (moveLeftWASD)
@@ -131,9 +224,11 @@ void updatePlayerMovement() { //Update player position live, creates more smooth
         player2.moveLeft();
     if (moveRightArrow)
         player2.moveRight();
+
+
 }
 
-void Keyboard(unsigned char key, int x, int y) { //Check when WASD is held
+void Keyboard(unsigned char key, int x, int y) {
     if (key == 'w')
         moveUpWASD = true;
     if (key == 'a')
@@ -144,7 +239,7 @@ void Keyboard(unsigned char key, int x, int y) { //Check when WASD is held
         moveRightWASD = true;
 }
 
-void KeyboardUp(unsigned char key, int x, int y) { //Check when WASD is released
+void KeyboardUp(unsigned char key, int x, int y) {
     if (key == 'w')
         moveUpWASD = false;
     if (key == 'a')
@@ -155,7 +250,7 @@ void KeyboardUp(unsigned char key, int x, int y) { //Check when WASD is released
         moveRightWASD = false;
 }
 
-void specialKeyboard(int key, int x, int y) { //Check when Arrow keys are held
+void specialKeyboard(int key, int x, int y) {
     if (key == GLUT_KEY_UP)
         moveUpArrow = true;
     if (key == GLUT_KEY_DOWN)
@@ -166,7 +261,7 @@ void specialKeyboard(int key, int x, int y) { //Check when Arrow keys are held
         moveRightArrow = true;
 }
 
-void specialKeyboardUp(int key, int x, int y) { //Check when Arrow keys are released
+void specialKeyboardUp(int key, int x, int y) {
     if (key == GLUT_KEY_UP)
         moveUpArrow = false;
     if (key == GLUT_KEY_DOWN)
@@ -177,18 +272,28 @@ void specialKeyboardUp(int key, int x, int y) { //Check when Arrow keys are rele
         moveRightArrow = false;
 }
 
+void createTerrainObjects() {
+    terrainObjects.push_back(Terrain(50, 10, 100, 5));
+    terrainObjects.push_back(Terrain(70, 20, 10, 8));
+}
+
+
 int main(int argc, char **argv) {
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
     glutInitWindowPosition(100, 100);
     glutInitWindowSize(phyWidth, phyHeight);
     glutCreateWindow("2D Platform Shooter");
     init2D();
+
+    createTerrainObjects();
+
     glutDisplayFunc(Display);
     glutKeyboardFunc(Keyboard);
     glutKeyboardUpFunc(KeyboardUp);
     glutSpecialFunc(specialKeyboard);
     glutSpecialUpFunc(specialKeyboardUp);
-    glutIdleFunc(updatePlayerMovement); // Idle function updates player movement regularly
+    glutIdleFunc(updatePlayerMovement);
     glutMainLoop();
 }
+
