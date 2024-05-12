@@ -18,6 +18,17 @@ bool moveDownArrow = false;
 bool moveLeftArrow = false;
 bool moveRightArrow = false;
 
+int gameTimer=90;
+void printTimer() {
+        char str[3];
+        sprintf(str, "%d", gameTimer);
+        glColor3f (1.0, 1.0, 1.0);
+        glRasterPos2d(48,97);
+        for (int i=0;i<strlen(str);i++)
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,str[i]);
+        glFlush();
+    }
+
 class GameObject {
 public:
 
@@ -69,13 +80,20 @@ std::vector<Terrain> terrainObjects;
 class Player : public GameObject {
 private:
     int num;
+    int score;
+
     bool grounded=false;
 
 public:
+    int jumpTimer=0;
+    void incScore(){
+        score++;
+        glutPostRedisplay();
+        }
     void moveRight() {
     // Check if there is any terrain obstructing the movement to the right
     for (size_t i = 0; i < terrainObjects.size(); ++i) {
-        if (x + moveSpeed >= terrainObjects[i].left && x + moveSpeed <= terrainObjects[i].right && y >= terrainObjects[i].bottom && y <= terrainObjects[i].top) {
+        if (x + 2>= terrainObjects[i].left && x + 2 <= terrainObjects[i].right && y+9 >= terrainObjects[i].top && y-9 <= terrainObjects[i].bottom) {
             // If there is terrain in the way, exit the function without moving
             return;
         }
@@ -85,34 +103,70 @@ public:
     glutPostRedisplay();
 }
 
-void moveLeft() {
-    // Check if there is any terrain obstructing the movement to the left
-    for (size_t i = 0; i < terrainObjects.size(); ++i) {
-        if (x - moveSpeed >= terrainObjects[i].left && x - moveSpeed <= terrainObjects[i].right && y >= terrainObjects[i].bottom && y <= terrainObjects[i].top) {
+    void moveLeft() {
+        // Check if there is any terrain obstructing the movement to the left
+        for (size_t i = 0; i < terrainObjects.size(); ++i) {
+            if (x - 2 >= terrainObjects[i].left && x - 2 <= terrainObjects[i].right && y+9 >= terrainObjects[i].top && y-9 <= terrainObjects[i].bottom) {
+                // If there is terrain in the way, exit the function without moving
+                return;
+            }
+        }
+        // If no terrain obstructs the movement, proceed to move the player to the left
+        x -= moveSpeed;
+        glutPostRedisplay();
+    }
+
+    void moveUp() {
+        // Check if there is any terrain obstructing the movement to the left
+
+        // If no terrain obstructs the movement, proceed to move the player to the left
+        for (size_t i = 0; i < terrainObjects.size(); ++i) {
+        if (y + 9>= terrainObjects[i].bottom && y + 9 <= terrainObjects[i].top && x+2 <= terrainObjects[i].right && x-2 >= terrainObjects[i].left) {
+            // If there is terrain in the way, exit the function without moving
+            return;
+            }
+        }
+        y += 3;
+        glutPostRedisplay();
+    }
+    void moveDown() {
+        for (size_t i = 0; i < terrainObjects.size(); ++i) {
+        if (x + 2>= terrainObjects[i].left && x + 2 <= terrainObjects[i].right && y-9 <= terrainObjects[i].top && y-9 >= terrainObjects[i].bottom) {
             // If there is terrain in the way, exit the function without moving
             return;
         }
     }
-    // If no terrain obstructs the movement, proceed to move the player to the left
-    x -= moveSpeed;
-    glutPostRedisplay();
-}
-
-    void moveUp() {
-        y += moveSpeed;
+        y -= 2;
         glutPostRedisplay();
     }
-    void moveDown() {
-        y -= moveSpeed;
-        glutPostRedisplay();
+    void printScore() {
+        char str[50];
+        sprintf(str, "Score: %d", score);
+        glColor3f (1.0, 1.0, 1.0);
+        switch(num){
+        case 1:glRasterPos2d(1,97);break;
+        case 2:glRasterPos2d(97-(strlen(str)),97);
+        }
+        for (int i=0;i<strlen(str);i++)
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,str[i]);
+        glFlush();
     }
     Player(int num, int x, int y) {
         this->num = num;
         this->x = x;
         this->y = y;
+        score=0;
     }
-
-    bool isGrounded(){return grounded;}
+    bool isGrounded(){
+    for (size_t i = 0; i < terrainObjects.size(); ++i) {
+        if (x + 2>= terrainObjects[i].left && x + 2 <= terrainObjects[i].right && y-9 <= terrainObjects[i].top && y-9 >= terrainObjects[i].bottom) {
+            grounded = true;
+            return true;
+        }
+    }
+    grounded = false;
+    return false;
+    }
     void Render() {
         switch(num){
             case 1: glColor3f(1.0, 0.0, 0.0); break;
@@ -151,35 +205,45 @@ void moveLeft() {
             glVertex2i(x+1,y-9);
         glEnd();
     }
+    void Gravity() {
 
-    void Gravity(){
-    // Decrease Y value by 1 unit
-    if(!grounded){
-        y-=1;
-        glutPostRedisplay();
-
-    }
-    // Check if the player is standing on terrain
-    for (size_t i = 0; i < terrainObjects.size(); ++i) {
-        if (y-9 <= terrainObjects[i].top && x >= terrainObjects[i].left && x <= terrainObjects[i].right) {
-            y = terrainObjects[i].top + 9; // Adjust player's Y position to be on top of the terrain
-            grounded = true; // Set grounded to true
-            return; // Exit the function as the player is grounded
+    if(jumpTimer>0){
+        for (size_t i = 0; i < terrainObjects.size(); ++i) {
+        if (y + 9>= terrainObjects[i].bottom && y + 9 <= terrainObjects[i].top && x+2 <= terrainObjects[i].right && x-2 >= terrainObjects[i].left) {
+            jumpTimer=0;
+            return;
+            }
         }
-        grounded=false;
+        moveUp();
+        jumpTimer--;
+        return;
     }
 
-    grounded = false; // If no terrain is found, set grounded to false
+    // Simulate falling if not grounded
+    if (!grounded) {
+        moveDown();
+    }
+
+
 }
 
-    void Jump(){
 
-}
+    void Jump() {
+    if (grounded) {
+        jumpTimer=12;
+    }
+    }
 
 };
 
 Player player1(1, 20, 50);
 Player player2(2, 80, 50);
+
+void Timer(int value){
+    if(gameTimer>0) gameTimer--;
+    glutPostRedisplay();
+    glutTimerFunc(1000,Timer,0);
+}
 
 void init2D() {
     glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -192,6 +256,9 @@ void Display() {
 
     player1.Render();
     player2.Render();
+    player1.printScore();
+    player2.printScore();
+    printTimer();
 
     for (size_t i = 0; i < terrainObjects.size(); ++i) {
         terrainObjects[i].Render();
@@ -204,22 +271,14 @@ void Display() {
 void updatePlayerMovement() {
     player1.Gravity();
     player2.Gravity();
+    player1.isGrounded();
+    player2.isGrounded();
 
-
-
-    if (moveUpWASD)
-        player1.Jump();
-    if (moveDownWASD)
-        player1.moveDown();
     if (moveLeftWASD)
         player1.moveLeft();
     if (moveRightWASD)
         player1.moveRight();
 
-    if (moveUpArrow)
-        player2.moveUp();
-    if (moveDownArrow)
-        player2.moveDown();
     if (moveLeftArrow)
         player2.moveLeft();
     if (moveRightArrow)
@@ -230,42 +289,40 @@ void updatePlayerMovement() {
 
 void Keyboard(unsigned char key, int x, int y) {
     if (key == 'w')
-        moveUpWASD = true;
+        player1.Jump();
     if (key == 'a')
         moveLeftWASD = true;
-    if (key == 's')
-        moveDownWASD = true;
     if (key == 'd')
         moveRightWASD = true;
+
+    //Fire here, increments score for now
+    if(key=='q')
+        player1.incScore();
+
+    if(key=='0')
+        player2.incScore();
 }
 
 void KeyboardUp(unsigned char key, int x, int y) {
-    if (key == 'w')
-        moveUpWASD = false;
     if (key == 'a')
         moveLeftWASD = false;
-    if (key == 's')
-        moveDownWASD = false;
     if (key == 'd')
         moveRightWASD = false;
 }
 
 void specialKeyboard(int key, int x, int y) {
     if (key == GLUT_KEY_UP)
-        moveUpArrow = true;
-    if (key == GLUT_KEY_DOWN)
-        moveDownArrow = true;
+       player2.Jump();
     if (key == GLUT_KEY_LEFT)
         moveLeftArrow = true;
     if (key == GLUT_KEY_RIGHT)
         moveRightArrow = true;
+
+    if (key == GLUT_KEY_INSERT)
+        player2.incScore();
 }
 
 void specialKeyboardUp(int key, int x, int y) {
-    if (key == GLUT_KEY_UP)
-        moveUpArrow = false;
-    if (key == GLUT_KEY_DOWN)
-        moveDownArrow = false;
     if (key == GLUT_KEY_LEFT)
         moveLeftArrow = false;
     if (key == GLUT_KEY_RIGHT)
@@ -273,8 +330,10 @@ void specialKeyboardUp(int key, int x, int y) {
 }
 
 void createTerrainObjects() {
-    terrainObjects.push_back(Terrain(50, 10, 100, 5));
-    terrainObjects.push_back(Terrain(70, 20, 10, 8));
+    terrainObjects.push_back(Terrain(50, 0, 100, 5)); //Floor
+    terrainObjects.push_back(Terrain(20, 25, 20, 3));
+    terrainObjects.push_back(Terrain(80, 25, 20, 3));
+    terrainObjects.push_back(Terrain(50, 50, 20, 3));
 }
 
 
@@ -294,6 +353,7 @@ int main(int argc, char **argv) {
     glutSpecialFunc(specialKeyboard);
     glutSpecialUpFunc(specialKeyboardUp);
     glutIdleFunc(updatePlayerMovement);
+    glutTimerFunc(1000,Timer,0);
     glutMainLoop();
 }
 
