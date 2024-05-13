@@ -18,6 +18,10 @@ bool moveDownArrow = false;
 bool moveLeftArrow = false;
 bool moveRightArrow = false;
 
+int oldTimeSinceStart = 0;
+int timeSinceStart;
+int deltaTime;
+
 int gameTimer=90;
 void printTimer() {
         char str[3];
@@ -82,7 +86,6 @@ private:
     int num;
     int score;
 
-    bool grounded=false;
 
 public:
     int jumpTimer=0;
@@ -99,7 +102,7 @@ public:
         }
     }
     // If no terrain obstructs the movement, proceed to move the player to the right
-    x += moveSpeed;
+    x += moveSpeed*deltaTime/16;
     glutPostRedisplay();
 }
 
@@ -112,7 +115,7 @@ public:
             }
         }
         // If no terrain obstructs the movement, proceed to move the player to the left
-        x -= moveSpeed;
+        x -= moveSpeed*deltaTime/16;
         glutPostRedisplay();
     }
 
@@ -126,7 +129,7 @@ public:
             return;
             }
         }
-        y += 3;
+        y += 3*deltaTime/16;
         glutPostRedisplay();
     }
     void moveDown() {
@@ -136,7 +139,7 @@ public:
             return;
         }
     }
-        y -= 2;
+        y -= deltaTime/5;
         glutPostRedisplay();
     }
     void printScore() {
@@ -160,11 +163,9 @@ public:
     bool isGrounded(){
     for (size_t i = 0; i < terrainObjects.size(); ++i) {
         if (x + 2>= terrainObjects[i].left && x + 2 <= terrainObjects[i].right && y-9 <= terrainObjects[i].top && y-9 >= terrainObjects[i].bottom) {
-            grounded = true;
             return true;
         }
     }
-    grounded = false;
     return false;
     }
     void Render() {
@@ -206,6 +207,7 @@ public:
         glEnd();
     }
     void Gravity() {
+        if(y<11) y=11;
 
     if(jumpTimer>0){
         for (size_t i = 0; i < terrainObjects.size(); ++i) {
@@ -220,7 +222,7 @@ public:
     }
 
     // Simulate falling if not grounded
-    if (!grounded) {
+    if (!isGrounded()) {
         moveDown();
     }
 
@@ -229,15 +231,15 @@ public:
 
 
     void Jump() {
-    if (grounded) {
+    if (isGrounded()) {
         jumpTimer=12;
     }
     }
 
 };
 
-Player player1(1, 20, 50);
-Player player2(2, 80, 50);
+Player player1(1, 20, 100);
+Player player2(2, 80, 100);
 
 void Timer(int value){
     if(gameTimer>0) gameTimer--;
@@ -269,10 +271,12 @@ void Display() {
 }
 
 void updatePlayerMovement() {
+    timeSinceStart = glutGet(GLUT_ELAPSED_TIME);
+    deltaTime = timeSinceStart - oldTimeSinceStart;
+    oldTimeSinceStart = timeSinceStart;
+    printf("%d,%d\n",player1.getX(),player1.getY());
     player1.Gravity();
     player2.Gravity();
-    player1.isGrounded();
-    player2.isGrounded();
 
     if (moveLeftWASD)
         player1.moveLeft();
