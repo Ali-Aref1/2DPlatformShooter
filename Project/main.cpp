@@ -1,12 +1,18 @@
-
 #include <GL/glut.h>
 #include <vector>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+
 
 int phyWidth = 700;
 int phyHeight = 700;
 int logWidth = 100;
 int logHeight = 100;
+int spos = -50;
 
 bool moveUpWASD = false;
 bool moveDownWASD = false;
@@ -17,6 +23,10 @@ bool moveUpArrow = false;
 bool moveDownArrow = false;
 bool moveLeftArrow = false;
 bool moveRightArrow = false;
+
+void moveShip(int& ypos) {
+    ypos++;
+}
 
 int gameTimer=90;
 void printTimer() {
@@ -251,8 +261,124 @@ void init2D() {
     gluOrtho2D(0.0, logWidth, 0.0, logHeight);
 }
 
+void DrawCircle(float cx, float cy, float r, int num_segments)
+{
+    glBegin(GL_POLYGON);
+    for (int i = 0; i < num_segments; i++) {
+        float theta = 2.0f * 3.1415926f * float(i) / float(num_segments);//get the current angle
+        float x = r * cosf(theta);//calculate the x component
+        float y = r * sinf(theta);//calculate the y component
+        glVertex2f(x + cx, y + cy);//output vertex
+    }
+    glEnd();
+}
+
+void printSome(char *str,int x,int y) {
+    glColor3f (1.0,1.0,1.0);
+    glRasterPos2d(x,y);
+    for (int i=0;i<strlen(str);i++)
+        glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24,str[i]);
+    glFlush();
+}
+
 void Display() {
+    glClearColor(0,0,0,1.0); // black color
     glClear(GL_COLOR_BUFFER_BIT);
+
+    // Draw a few white clouds
+     glColor3f(1.0, 1.0, 1.0); // White color
+    glPointSize(2.0); // Set point size for stars
+    glBegin(GL_POINTS);
+    for (int i = 0; i < 1000; i++) {
+        float x = rand() % 100;
+        float y = rand() % 100;
+        glVertex2f(x, y);
+    }
+    glEnd();
+
+     // Draw asteroids with black holes
+    for (int i = 0; i < 10; i++) {
+        float x = rand() % 100;
+        float y = rand() % 100;
+        float r = rand() % 5 + 2; // Random radius between 2 and 7
+
+        // Draw asteroid (grey circle)
+        glColor3f(0.5, 0.5, 0.5); // Grey color
+        DrawCircle(x, y, r, 30); // Draw asteroid
+
+        // Draw black holes (tiny dark grey circles)
+        glColor3f(0.2, 0.2, 0.2); // Dark grey color
+        float hole_radius = r * 0.2; // Size of black hole relative to asteroid radius
+        DrawCircle(x + r / 2.0, y + r / 2.0, hole_radius, 10); // Draw first black hole
+        DrawCircle(x - r / 2.0, y - r / 2.0, hole_radius, 10); // Draw second black hole
+    }
+
+    // Draw spaceship body
+    glColor3f(0.75, 0.75, 0.75); // Silver color
+    glBegin(GL_POLYGON);
+    glVertex2f(46, 55 + spos);
+    glVertex2f(46, 65 + spos);
+    glVertex2f(50, 70 + spos);
+    glVertex2f(54, 65 + spos);
+    glVertex2f(54, 55 + spos);
+    glEnd();
+
+    // Spaceship Coloring
+    glColor3f(1.0, 1.0, 1.0); // Silver color
+    glBegin(GL_POLYGON);
+    glVertex2f(47, 55 + spos);
+    glVertex2f(47, 65 + spos);
+    glVertex2f(53, 65 + spos);
+    glVertex2f(53, 55 + spos);
+    glEnd();
+
+    // Draw spaceship leftwing
+    glColor3f(0.75, 0.75, 0.75); // Silver color
+    glBegin(GL_POLYGON);
+    glVertex2f(46, 55 + spos);
+    glVertex2f(46, 60 + spos);
+    glVertex2f(43, 60 + spos);
+    glVertex2f(41, 55 + spos);
+    glEnd();
+
+    // Draw spaceship rightwing
+    glColor3f(0.75, 0.75, 0.75); // Silver color
+    glBegin(GL_POLYGON);
+    glVertex2f(54, 55 + spos);
+    glVertex2f(54, 60 + spos);
+    glVertex2f(57, 60 + spos);
+    glVertex2f(59, 55 + spos);
+    glEnd();
+
+    // Draw spaceship glass
+    glColor3f(0.529, 0.808, 0.922); // Light blue color
+    glBegin(GL_TRIANGLES);
+    glVertex2f(48, 66 + spos); // Bottom vertex
+    glVertex2f(50, 69 + spos); // Top left vertex
+    glVertex2f(52, 66 + spos); // Top right vertex
+    glEnd();
+
+    // Draw spaceship engine fires (orange rectangles)
+    glColor3f(1.0, 0.5, 0.0); // Orange color
+    glBegin(GL_POLYGON);
+    glVertex2f(43, 52 + spos); // Left fire
+    glVertex2f(43, 55 + spos);
+    glVertex2f(45, 55 + spos);
+    glVertex2f(45, 52 + spos);
+    glEnd();
+    // Draw spaceship engine fires (orange rectangles)
+    glColor3f(1.0, 0.5, 0.0); // Orange color
+    glBegin(GL_POLYGON);
+    glVertex2f(55, 52 + spos); // Left fire
+    glVertex2f(55, 55 + spos);
+    glVertex2f(57, 55 + spos);
+    glVertex2f(57, 52 + spos);
+    glEnd();
+
+
+
+    glColor3f(1.0, 1.0, 0.0); // Yellow color
+    DrawCircle(90.0, 90.0, 10.0, 30); // Draw sun
 
     player1.Render();
     player2.Render();
@@ -356,4 +482,3 @@ int main(int argc, char **argv) {
     glutTimerFunc(1000,Timer,0);
     glutMainLoop();
 }
-
