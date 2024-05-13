@@ -26,6 +26,13 @@ bool moveRightArrow = false;
 int oldTimeSinceStart = 0;
 int timeSinceStart;
 int deltaTime;
+int TOTALSTARS = 1000;
+int STARSx [1000];
+int STARSy [1000];
+int ASTEROIDX [10];
+int ASTEROIDY [10];
+int ASTEROIDR [10];
+
 void moveShip(int &ypos)
 {
     ypos++;
@@ -286,10 +293,27 @@ public:
 Player player1(1, 20, 100);
 Player player2(2, 80, 100);
 
+void Randomize()
+{
+    for (int i = 0; i < TOTALSTARS; i++)
+    {
+        STARSx[i]=rand() %100;
+        STARSy[i]=rand() %100;
+    }
+    for (int i = 0; i < 10; i++)
+    {
+        ASTEROIDX[i] = rand() % 100;
+        ASTEROIDY[i] = rand() % 100;
+        ASTEROIDR[i]= rand() % 5 + 2; // Random radius between 2 and 7
+
+    }
+}
+
 void Timer(int value)
 {
     if (gameTimer > 0)
         gameTimer--;
+    Randomize();
     glutPostRedisplay();
     glutTimerFunc(1000, Timer, 0);
 }
@@ -323,41 +347,36 @@ void printSome(char *str, int x, int y)
     glFlush();
 }
 
+
+
 void Display()
 {
     glClearColor(0, 0, 0, 1.0); // black color
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // Draw a few white clouds
     glColor3f(1.0, 1.0, 1.0); // White color
-    glPointSize(2.0);         // Set point size for stars
+    glPointSize(2.0);
+    // Set point size for stars
     glBegin(GL_POINTS);
-    for (int i = 0; i < 1000; i++)
+
+    for (int i = 0; i < TOTALSTARS; i++)//STARS LOOP
     {
-        float x = rand() % 100;
-        float y = rand() % 100;
-        glVertex2f(x, y);
+        glVertex2f(STARSx[i], STARSy[i]);
     }
+
     glEnd();
 
-    // Draw asteroids with black holes
     for (int i = 0; i < 10; i++)
-    {
-        float x = rand() % 100;
-        float y = rand() % 100;
-        float r = rand() % 5 + 2; // Random radius between 2 and 7
-
-        // Draw asteroid (grey circle)
+        {
         glColor3f(0.5, 0.5, 0.5); // Grey color
-        DrawCircle(x, y, r, 30);  // Draw asteroid
+        DrawCircle(ASTEROIDX[i],ASTEROIDY[i],ASTEROIDR[i], 30);  // Draw asteroid
 
         // Draw black holes (tiny dark grey circles)
         glColor3f(0.2, 0.2, 0.2);                              // Dark grey color
-        float hole_radius = r * 0.2;                           // Size of black hole relative to asteroid radius
-        DrawCircle(x + r / 2.0, y + r / 2.0, hole_radius, 10); // Draw first black hole
-        DrawCircle(x - r / 2.0, y - r / 2.0, hole_radius, 10); // Draw second black hole
-    }
-
+        float hole_radius = ASTEROIDR[i] * 0.2;                           // Size of black hole relative to asteroid radius
+        DrawCircle(ASTEROIDX[i] + ASTEROIDR[i] / 2.0, ASTEROIDY[i] + ASTEROIDR[i] / 2.0, hole_radius, 10); // Draw first black hole
+        DrawCircle(ASTEROIDX[i] - ASTEROIDR[i] / 2.0, ASTEROIDY[i] - ASTEROIDR[i] / 2.0, hole_radius, 10); // Draw second black hole
+        }
     // Draw spaceship body
     glColor3f(0.75, 0.75, 0.75); // Silver color
     glBegin(GL_POLYGON);
@@ -423,6 +442,7 @@ void Display()
     glColor3f(1.0, 1.0, 0.0);         // Yellow color
     DrawCircle(90.0, 90.0, 10.0, 30); // Draw sun
 
+
     player1.Render();
     player2.Render();
     player1.printScore();
@@ -443,9 +463,10 @@ void updatePlayerMovement()
     timeSinceStart = glutGet(GLUT_ELAPSED_TIME);
     deltaTime = timeSinceStart - oldTimeSinceStart;
     oldTimeSinceStart = timeSinceStart;
-    printf("%d,%d\n", player1.getX(), player1.getY());
     player1.Gravity();
     player2.Gravity();
+
+    printf("%d\n",deltaTime);
 
     if (moveLeftWASD)
         player1.moveLeft();
@@ -522,7 +543,7 @@ int main(int argc, char **argv)
     init2D();
 
     createTerrainObjects();
-
+    Randomize();
     glutDisplayFunc(Display);
     glutKeyboardFunc(Keyboard);
     glutKeyboardUpFunc(KeyboardUp);
