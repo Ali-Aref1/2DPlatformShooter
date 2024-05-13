@@ -50,8 +50,8 @@ public:
     int getX() { return x; }
 
 protected:
-    int x = 0;
-    int y = 0;
+    float x = 0;
+    float y = 0;
     int moveSpeed = 1;
 };
 
@@ -107,37 +107,38 @@ public:
         score++;
         glutPostRedisplay();
     }
-    void moveRight()
+    void moveLeft(float distance)
+{
+    // Check if there is any terrain obstructing the movement to the left
+    for (size_t i = 0; i < terrainObjects.size(); ++i)
     {
-        // Check if there is any terrain obstructing the movement to the right
-        for (size_t i = 0; i < terrainObjects.size(); ++i)
+        if (x - distance >= terrainObjects[i].left && x - distance <= terrainObjects[i].right && y + 9 >= terrainObjects[i].top && y - 9 <= terrainObjects[i].bottom)
         {
-            if (x + 2 >= terrainObjects[i].left && x + 2 <= terrainObjects[i].right && y + 9 >= terrainObjects[i].top && y - 9 <= terrainObjects[i].bottom)
-            {
-                // If there is terrain in the way, exit the function without moving
-                return;
-            }
+            // If there is terrain in the way, exit the function without moving
+            return;
         }
-        // If no terrain obstructs the movement, proceed to move the player to the right
-        x += moveSpeed * deltaTime / 16;
-        glutPostRedisplay();
     }
+    // If no terrain obstructs the movement, proceed to move the player to the left
+    x -= distance;
+    glutPostRedisplay();
+}
 
-    void moveLeft()
+void moveRight(float distance)
+{
+    // Check if there is any terrain obstructing the movement to the right
+    for (size_t i = 0; i < terrainObjects.size(); ++i)
     {
-        // Check if there is any terrain obstructing the movement to the left
-        for (size_t i = 0; i < terrainObjects.size(); ++i)
+        if (x + distance >= terrainObjects[i].left && x + distance <= terrainObjects[i].right && y + 9 >= terrainObjects[i].top && y - 9 <= terrainObjects[i].bottom)
         {
-            if (x - 2 >= terrainObjects[i].left && x - 2 <= terrainObjects[i].right && y + 9 >= terrainObjects[i].top && y - 9 <= terrainObjects[i].bottom)
-            {
-                // If there is terrain in the way, exit the function without moving
-                return;
-            }
+            // If there is terrain in the way, exit the function without moving
+            return;
         }
-        // If no terrain obstructs the movement, proceed to move the player to the left
-        x -= moveSpeed * deltaTime / 16;
-        glutPostRedisplay();
     }
+    // If no terrain obstructs the movement, proceed to move the player to the right
+    x += distance;
+    glutPostRedisplay();
+}
+
 
     void moveUp()
     {
@@ -152,7 +153,7 @@ public:
                 return;
             }
         }
-        y += 3 * deltaTime / 16;
+        y += 3;
         glutPostRedisplay();
     }
     void moveDown()
@@ -165,7 +166,8 @@ public:
                 return;
             }
         }
-        y -= deltaTime / 5;
+        y -= 6;
+        if(y<10) y=10;
         glutPostRedisplay();
     }
     void printScore()
@@ -440,23 +442,29 @@ void Display()
 
 void updatePlayerMovement()
 {
-    timeSinceStart = glutGet(GLUT_ELAPSED_TIME);
-    deltaTime = timeSinceStart - oldTimeSinceStart;
-    oldTimeSinceStart = timeSinceStart;
-    printf("%d,%d\n", player1.getX(), player1.getY());
+    // Calculate elapsed time since the last frame
+    int currentTime = glutGet(GLUT_ELAPSED_TIME);
+    deltaTime = currentTime - oldTimeSinceStart;
+    oldTimeSinceStart = currentTime;
+
+    // Update player movement based on elapsed time
+    float playerSpeed = 0.1f; // Adjust this value to control player speed
+    float playerMovement = playerSpeed * deltaTime;
+
     player1.Gravity();
     player2.Gravity();
 
     if (moveLeftWASD)
-        player1.moveLeft();
+        player1.moveLeft(playerMovement);
     if (moveRightWASD)
-        player1.moveRight();
+        player1.moveRight(playerMovement);
 
     if (moveLeftArrow)
-        player2.moveLeft();
+        player2.moveLeft(playerMovement);
     if (moveRightArrow)
-        player2.moveRight();
+        player2.moveRight(playerMovement);
 }
+
 
 void Keyboard(unsigned char key, int x, int y)
 {
