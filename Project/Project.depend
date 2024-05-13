@@ -9,10 +9,10 @@
 	<math.h>
 	<unistd.h>
 
-1426342528 c:\program files (x86)\codeblocks\mingw\include\gl\glut.h
+1711221349 c:\program files (x86)\codeblocks\mingw\include\gl\glut.h
 	"freeglut_std.h"
 
-1426342528 c:\program files (x86)\codeblocks\mingw\include\gl\freeglut_std.h
+1711221349 c:\program files (x86)\codeblocks\mingw\include\gl\freeglut_std.h
 	<windows.h>
 	<EGL/egl.h>
 	<GLES/gl.h>
@@ -266,4 +266,14 @@
 
 1341010372 c:\program files (x86)\codeblocks\mingw\include\getopt.h
 	<_mingw.h>
+
+1715636642 source:c:\users\ahmed\onedrive\desktop\github project, graphics\2dplatformshooter\project\main.cpp
+	<GL/glut.h>
+	<vector>
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<stdio.h>
+	<math.h>
+	<unistd.h>
 
