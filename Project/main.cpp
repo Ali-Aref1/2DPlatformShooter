@@ -23,9 +23,7 @@ bool moveDownArrow = false;
 bool moveLeftArrow = false;
 bool moveRightArrow = false;
 
-int oldTimeSinceStart = 0;
-int timeSinceStart;
-int deltaTime;
+int ms=0;
 int TOTALSTARS = 1000;
 int STARSx[1000];
 int STARSy[1000];
@@ -59,7 +57,7 @@ public:
 protected:
     float x = 0;
     float y = 0;
-    int moveSpeed = 1;
+    float moveSpeed = 1.0f;
 };
 
 class Terrain : public GameObject
@@ -109,40 +107,42 @@ private:
 
 public:
     int jumpTimer = 0;
+    bool jumping=false;
+    bool jumpLock = false;
     void incScore()
     {
         score++;
         glutPostRedisplay();
     }
-    void moveLeft(float distance)
+    void moveLeft()
     {
         // Check if there is any terrain obstructing the movement to the left
         for (size_t i = 0; i < terrainObjects.size(); ++i)
         {
-            if (x - distance >= terrainObjects[i].left && x - distance <= terrainObjects[i].right && y + 9 >= terrainObjects[i].top && y - 9 <= terrainObjects[i].bottom)
+            if (x - moveSpeed >= terrainObjects[i].left && x - moveSpeed <= terrainObjects[i].right && y + 9 >= terrainObjects[i].top && y - 9 <= terrainObjects[i].bottom)
             {
                 // If there is terrain in the way, exit the function without moving
                 return;
             }
         }
         // If no terrain obstructs the movement, proceed to move the player to the left
-        x -= distance;
+        x -= moveSpeed;
         glutPostRedisplay();
     }
 
-    void moveRight(float distance)
+    void moveRight()
     {
         // Check if there is any terrain obstructing the movement to the right
         for (size_t i = 0; i < terrainObjects.size(); ++i)
         {
-            if (x + distance >= terrainObjects[i].left && x + distance <= terrainObjects[i].right && y + 9 >= terrainObjects[i].top && y - 9 <= terrainObjects[i].bottom)
+            if (x + moveSpeed >= terrainObjects[i].left && x + moveSpeed <= terrainObjects[i].right && y + 9 >= terrainObjects[i].top && y - 9 <= terrainObjects[i].bottom)
             {
                 // If there is terrain in the way, exit the function without moving
                 return;
             }
         }
         // If no terrain obstructs the movement, proceed to move the player to the right
-        x += distance;
+        x += moveSpeed;
         glutPostRedisplay();
     }
 
@@ -159,20 +159,21 @@ public:
                 return;
             }
         }
-        y += 3;
+        y += 2;
         glutPostRedisplay();
     }
     void moveDown()
     {
         for (size_t i = 0; i < terrainObjects.size(); ++i)
         {
-            if (x + 2 >= terrainObjects[i].left && x + 2 <= terrainObjects[i].right && y - 9 <= terrainObjects[i].top && y - 9 >= terrainObjects[i].bottom)
+            if (x + 2 >= terrainObjects[i].left && x + 2 <= terrainObjects[i].right && y - 10 <= terrainObjects[i].top && y - 10 >= terrainObjects[i].bottom)
             {
                 // If there is terrain in the way, exit the function without moving
+                y=terrainObjects[i].top+9;
                 return;
             }
         }
-        y -= 6;
+        y -= 4;
         if (y < 10)
             y = 10;
         glutPostRedisplay();
@@ -207,6 +208,7 @@ public:
         {
             if (x + 2 >= terrainObjects[i].left && x + 2 <= terrainObjects[i].right && y - 9 <= terrainObjects[i].top && y - 9 >= terrainObjects[i].bottom)
             {
+                y=terrainObjects[i].top+9;
                 return true;
             }
         }
@@ -261,7 +263,7 @@ public:
         if (y < 11)
             y = 11;
 
-        if (jumpTimer > 0)
+       /* if (jumpTimer > 0 && !jumping)
         {
             for (size_t i = 0; i < terrainObjects.size(); ++i)
             {
@@ -272,7 +274,26 @@ public:
                 }
             }
             moveUp();
-            jumpTimer--;
+            return;
+        }*/
+        if(jumping){
+            for (size_t i = 0; i < terrainObjects.size(); ++i)
+            {
+                if (y + 9 >= terrainObjects[i].bottom && y + 9 <= terrainObjects[i].top && x + 2 <= terrainObjects[i].right && x - 2 >= terrainObjects[i].left)
+                {
+                    jumping = false;
+                    jumpTimer = 0;
+                    jumpLock=true;
+                    return;
+                }
+            }
+            if(jumpTimer>=20){
+                jumping = false;
+                jumpTimer = 0;
+                jumpLock=true;
+                return;
+            }
+            moveUp();
             return;
         }
 
@@ -287,8 +308,16 @@ public:
     {
         if (isGrounded())
         {
-            jumpTimer = 12;
+            jumping=true;
         }
+        if(jumping && jumpTimer<=20){
+            jumpTimer++;
+        }
+        if (jumpTimer>=20)
+            {
+                jumping=false;
+                jumpLock=true;
+            }
     }
 };
 
@@ -310,14 +339,7 @@ void Randomize()
     }
 }
 
-void Timer(int value)
-{
-    if (gameTimer > 0)
-        gameTimer--;
-    Randomize();
-    glutPostRedisplay();
-    glutTimerFunc(1000, Timer, 0);
-}
+
 
 void init2D()
 {
@@ -439,7 +461,7 @@ void Display()
     glEnd();
 
     glColor3f(1.0, 1.0, 0.0);         // Yellow color
-    DrawCircle(90.0, 90.0, 10.0, 30); // Draw sun
+    DrawCircle(90.0, 80.0, 10.0, 30); // Draw sun
 
     player1.Render();
     player2.Render();
@@ -458,38 +480,68 @@ void Display()
 
 void updatePlayerMovement()
 {
+    printf("%d\n",player2.jumpLock);
     // Calculate elapsed time since the last frame
-    int currentTime = glutGet(GLUT_ELAPSED_TIME);
-    deltaTime = currentTime - oldTimeSinceStart;
-    oldTimeSinceStart = currentTime;
-
-    // Update player movement based on elapsed time
-    float playerSpeed = 0.1f; // Adjust this value to control player speed
-    float playerMovement = playerSpeed * deltaTime;
-
-    timeSinceStart = glutGet(GLUT_ELAPSED_TIME);
-    deltaTime = timeSinceStart - oldTimeSinceStart;
-    oldTimeSinceStart = timeSinceStart;
     player1.Gravity();
     player2.Gravity();
+    if (moveUpWASD && !player1.jumpLock){
+        if(player1.isGrounded())
+            player1.jumping=true;
+        if(player1.jumping){
+            player1.jumpTimer++;
+        }
 
-    printf("%d\n", deltaTime);
-
+    }
+    else{
+        player1.jumping=false;
+        player1.jumpTimer=0;
+    }
     if (moveLeftWASD)
-        player1.moveLeft(playerMovement);
+        player1.moveLeft();
     if (moveRightWASD)
-        player1.moveRight(playerMovement);
+        player1.moveRight();
 
+
+
+    if (moveUpArrow && !player2.jumpLock){
+        if(player2.isGrounded())
+            player2.jumping=true;
+        if(player2.jumping){
+            player2.jumpTimer++;
+        }
+
+    }
+    else{
+        player2.jumping=false;
+        player2.jumpTimer=0;
+    }
     if (moveLeftArrow)
-        player2.moveLeft(playerMovement);
+        player2.moveLeft();
     if (moveRightArrow)
-        player2.moveRight(playerMovement);
+        player2.moveRight();
+}
+void Timer(int value)
+{
+    //every 10 frames
+    updatePlayerMovement();
+    ms+=10;
+    //every 1s
+    if(ms>=625){
+        if (gameTimer > 0)
+            gameTimer--;
+        Randomize();
+        ms=0;
+        spos++;
+    }
+
+    glutPostRedisplay();
+    glutTimerFunc(10, Timer, 0);
 }
 
 void Keyboard(unsigned char key, int x, int y)
 {
     if (key == 'w')
-        player1.Jump();
+        moveUpWASD = true;
     if (key == 'a')
         moveLeftWASD = true;
     if (key == 'd')
@@ -505,6 +557,10 @@ void Keyboard(unsigned char key, int x, int y)
 
 void KeyboardUp(unsigned char key, int x, int y)
 {
+    if (key == 'w'){
+        moveUpWASD = false;
+        player1.jumpLock=false;
+        }
     if (key == 'a')
         moveLeftWASD = false;
     if (key == 'd')
@@ -514,7 +570,7 @@ void KeyboardUp(unsigned char key, int x, int y)
 void specialKeyboard(int key, int x, int y)
 {
     if (key == GLUT_KEY_UP)
-        player2.Jump();
+        moveUpArrow=true;
     if (key == GLUT_KEY_LEFT)
         moveLeftArrow = true;
     if (key == GLUT_KEY_RIGHT)
@@ -526,6 +582,10 @@ void specialKeyboard(int key, int x, int y)
 
 void specialKeyboardUp(int key, int x, int y)
 {
+    if(key == GLUT_KEY_UP){
+        moveUpArrow = false;
+        player2.jumpLock=false;
+        }
     if (key == GLUT_KEY_LEFT)
         moveLeftArrow = false;
     if (key == GLUT_KEY_RIGHT)
@@ -535,9 +595,9 @@ void specialKeyboardUp(int key, int x, int y)
 void createTerrainObjects()
 {
     terrainObjects.push_back(Terrain(50, 0, 100, 5)); // Floor
-    terrainObjects.push_back(Terrain(20, 25, 20, 3));
-    terrainObjects.push_back(Terrain(80, 25, 20, 3));
-    terrainObjects.push_back(Terrain(50, 50, 20, 3));
+    terrainObjects.push_back(Terrain(20, 25, 20, 5));
+    terrainObjects.push_back(Terrain(80, 25, 20, 5));
+    terrainObjects.push_back(Terrain(50, 50, 20, 5));
 }
 
 int main(int argc, char **argv)
@@ -556,7 +616,6 @@ int main(int argc, char **argv)
     glutKeyboardUpFunc(KeyboardUp);
     glutSpecialFunc(specialKeyboard);
     glutSpecialUpFunc(specialKeyboardUp);
-    glutIdleFunc(updatePlayerMovement);
-    glutTimerFunc(1000, Timer, 0);
+    glutTimerFunc(50, Timer, 0);
     glutMainLoop();
 }
