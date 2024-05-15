@@ -11,7 +11,7 @@ int phyWidth = 700;
 int phyHeight = 700;
 int logWidth = 100;
 int logHeight = 100;
-int spos = -50;
+float spos = -50;
 
 bool moveUpWASD = false;
 bool moveDownWASD = false;
@@ -25,11 +25,11 @@ bool moveRightArrow = false;
 
 int ms=0;
 int TOTALSTARS = 1000;
-int STARSx[1000];
-int STARSy[1000];
-int ASTEROIDX[10];
-int ASTEROIDY[10];
-int ASTEROIDR[10];
+float STARSx[1000];
+float STARSy[1000];
+float ASTEROIDX[10];
+float ASTEROIDY[10];
+float ASTEROIDR[10];
 
 void moveShip(int &ypos)
 {
@@ -51,14 +51,20 @@ void printTimer()
 class GameObject
 {
 public:
-    int getY() { return y; }
-    int getX() { return x; }
+    float getY() { return y; }
+    float getX() { return x; }
+
+    void setY(float value){y=value;}
+    void setX(float value){x=value;}
+
 
 protected:
     float x = 0;
     float y = 0;
     float moveSpeed = 1.0f;
 };
+
+
 
 class Terrain : public GameObject
 {
@@ -99,6 +105,28 @@ public:
 
 std::vector<Terrain> terrainObjects;
 
+class Bullet : public GameObject{
+public:
+    int player;
+    bool right;
+    void Render(){
+        glColor3f(1.0f,1.0f,0);
+        glBegin(GL_POLYGON);
+            glVertex2f(x-1,y-1);
+            glVertex2f(x-1,y);
+            glVertex2f(x,y);
+            glVertex2f(x,y-1);
+        glEnd();
+        glutPostRedisplay();
+    }
+    Bullet(float x, float y, int player, bool right){
+        this->x=x;
+        this->y=y;
+        this->player=player;
+        this->right=right;
+    }
+};
+
 class Player : public GameObject
 {
 private:
@@ -107,9 +135,13 @@ private:
 
 public:
     int jumpTimer = 0;
+    bool canShoot=true;
     bool jumping=false;
     bool jumpLock = false;
+    bool right=true;
+    std::vector<Bullet> bullets;
     void incScore()
+
     {
         score++;
         glutPostRedisplay();
@@ -126,6 +158,7 @@ public:
             }
         }
         // If no terrain obstructs the movement, proceed to move the player to the left
+        right=false;
         x -= moveSpeed;
         glutPostRedisplay();
     }
@@ -142,6 +175,7 @@ public:
             }
         }
         // If no terrain obstructs the movement, proceed to move the player to the right
+        right=true;
         x += moveSpeed;
         glutPostRedisplay();
     }
@@ -262,20 +296,6 @@ public:
     {
         if (y < 11)
             y = 11;
-
-       /* if (jumpTimer > 0 && !jumping)
-        {
-            for (size_t i = 0; i < terrainObjects.size(); ++i)
-            {
-                if (y + 9 >= terrainObjects[i].bottom && y + 9 <= terrainObjects[i].top && x + 2 <= terrainObjects[i].right && x - 2 >= terrainObjects[i].left)
-                {
-                    jumpTimer = 0;
-                    return;
-                }
-            }
-            moveUp();
-            return;
-        }*/
         if(jumping){
             for (size_t i = 0; i < terrainObjects.size(); ++i)
             {
@@ -319,7 +339,19 @@ public:
                 jumpLock=true;
             }
     }
+    void Shoot(){
+        if(canShoot){
+            printf("Player %d shot!\n",num);
+            canShoot=false;
+        if(right){
+            bullets.push_back(Bullet(x+2,y+2,num,right));
+        }
+        else bullets.push_back(Bullet(x-2,y+2,num,right));
+    }
+    }
 };
+
+
 
 Player player1(1, 20, 100);
 Player player2(2, 80, 100);
@@ -328,14 +360,21 @@ void Randomize()
 {
     for (int i = 0; i < TOTALSTARS; i++)
     {
-        STARSx[i] = rand() % 100;
-        STARSy[i] = rand() % 100;
+
+        STARSy[i]-=0.1f;
+        if(STARSy[i]<0){
+            STARSx[i] = rand() % 100;
+            STARSy[i]+=100;
+        }
     }
     for (int i = 0; i < 10; i++)
     {
-        ASTEROIDX[i] = rand() % 100;
-        ASTEROIDY[i] = rand() % 100;
-        ASTEROIDR[i] = rand() % 5 + 2; // Random radius between 2 and 7
+        ASTEROIDY[i] -=0.1f;
+        if(ASTEROIDY[i]+ASTEROIDR[i]<0){
+            ASTEROIDX[i] = rand() % 100;
+            ASTEROIDY[i]+=100+2*ASTEROIDR[i];
+        }
+        //ASTEROIDR[i] = rand() % 5 + 2; // Random radius between 2 and 7
     }
 }
 
@@ -474,14 +513,21 @@ void Display()
         terrainObjects[i].Render();
     }
 
+    for (size_t i = 0; i < player1.bullets.size(); ++i)
+    {
+        player1.bullets[i].Render();
+    }
+    for (size_t i = 0; i < player2.bullets.size(); ++i)
+    {
+        player2.bullets[i].Render();
+    }
+
     glutSwapBuffers();
     glFlush();
 }
 
 void updatePlayerMovement()
 {
-    printf("%d\n",player2.jumpLock);
-    // Calculate elapsed time since the last frame
     player1.Gravity();
     player2.Gravity();
     if (moveUpWASD && !player1.jumpLock){
@@ -519,19 +565,75 @@ void updatePlayerMovement()
         player2.moveLeft();
     if (moveRightArrow)
         player2.moveRight();
+
+    for(size_t i = 0; i < player1.bullets.size(); ++i){
+        if(player1.bullets[i].right){
+        player1.bullets[i].setX(player1.bullets[i].getX()+1.5f);
+        if(player1.bullets[i].getX()+1.5f >=player2.getX()-2 && player1.bullets[i].getX()+1.5f <= player2.getX()+2 && player1.bullets[i].getY() >= player2.getY()-9 && player1.bullets[i].getY() <= player2.getY()+9){
+            player1.incScore();
+            player1.bullets.erase(player1.bullets.begin() + i);
+
+        }}
+        else {
+        player1.bullets[i].setX(player1.bullets[i].getX()-1.5f);
+        if(player1.bullets[i].getX()-1.5f <=player2.getX()+2 && player1.bullets[i].getX()-1.5f >= player2.getX()-2 && player1.bullets[i].getY() >= player2.getY()-9 && player1.bullets[i].getY() <= player2.getY()+9){
+            player1.incScore();
+            player1.bullets.erase(player1.bullets.begin() + i);
+
+        }}
+
+        // Check if the bullet is out of the frame boundaries
+        if (player1.bullets[i].getX() < 0 || player1.bullets[i].getX() > logWidth ||
+            player1.bullets[i].getY() < 0 || player1.bullets[i].getY() > logHeight)
+        {
+            // Remove the bullet from the vector
+            player1.bullets.erase(player1.bullets.begin() + i);
+            // Adjust index to account for the removed element
+            i--;
+        }
+    }
+    for(size_t i = 0; i < player2.bullets.size(); ++i){
+        if(player2.bullets[i].right){
+        player2.bullets[i].setX(player2.bullets[i].getX()+1.5f);
+        if(player2.bullets[i].getX()+1.5f >=player1.getX()-2 && player2.bullets[i].getX()+1.5f <= player1.getX()+2 && player2.bullets[i].getY() >= player1.getY()-9 && player2.bullets[i].getY() <= player1.getY()+9){
+            player2.incScore();
+            player2.bullets.erase(player2.bullets.begin() + i);
+
+        }}
+
+        else{
+        player2.bullets[i].setX(player2.bullets[i].getX()-1.5f);
+        if(player2.bullets[i].getX()-1.5f <=player1.getX()+2 && player2.bullets[i].getX()-1.5f >= player1.getX()-2 && player2.bullets[i].getY() >= player1.getY()-9 && player2.bullets[i].getY() <= player1.getY()+9){
+            player2.incScore();
+            player2.bullets.erase(player2.bullets.begin() + i);
+
+        }}
+
+        // Check if the bullet is out of the frame boundaries
+        if (player2.bullets[i].getX() < 0 || player2.bullets[i].getX() > logWidth ||
+            player2.bullets[i].getY() < 0 || player2.bullets[i].getY() > logHeight)
+        {
+            // Remove the bullet from the vector
+            player2.bullets.erase(player2.bullets.begin() + i);
+            // Adjust index to account for the removed element
+            i--;
+        }
+    }
 }
 void Timer(int value)
 {
     //every 10 frames
     updatePlayerMovement();
     ms+=10;
+    spos+=0.01f;
+    Randomize();
     //every 1s
     if(ms>=625){
         if (gameTimer > 0)
             gameTimer--;
-        Randomize();
+
         ms=0;
-        spos++;
+
     }
 
     glutPostRedisplay();
@@ -549,10 +651,10 @@ void Keyboard(unsigned char key, int x, int y)
 
     // Fire here, increments score for now
     if (key == 'q')
-        player1.incScore();
+        player1.Shoot();
 
     if (key == '0')
-        player2.incScore();
+        player2.Shoot();
 }
 
 void KeyboardUp(unsigned char key, int x, int y)
@@ -565,6 +667,10 @@ void KeyboardUp(unsigned char key, int x, int y)
         moveLeftWASD = false;
     if (key == 'd')
         moveRightWASD = false;
+    if (key == 'q')
+        player1.canShoot=true;
+    if (key == '0')
+        player2.canShoot=true;
 }
 
 void specialKeyboard(int key, int x, int y)
@@ -575,9 +681,8 @@ void specialKeyboard(int key, int x, int y)
         moveLeftArrow = true;
     if (key == GLUT_KEY_RIGHT)
         moveRightArrow = true;
-
     if (key == GLUT_KEY_INSERT)
-        player2.incScore();
+        player2.Shoot();
 }
 
 void specialKeyboardUp(int key, int x, int y)
@@ -590,6 +695,8 @@ void specialKeyboardUp(int key, int x, int y)
         moveLeftArrow = false;
     if (key == GLUT_KEY_RIGHT)
         moveRightArrow = false;
+    if (key == GLUT_KEY_INSERT)
+        player2.canShoot=true;
 }
 
 void createTerrainObjects()
@@ -610,7 +717,18 @@ int main(int argc, char **argv)
     init2D();
 
     createTerrainObjects();
-    Randomize();
+    for (int i = 0; i < TOTALSTARS; i++)
+    {
+        STARSx[i] = rand() % 100;
+        STARSy[i] = rand() % 100;
+    }
+    for (int i = 0; i < 10; i++)
+    {
+        ASTEROIDX[i] = rand() % 100;
+        ASTEROIDY[i] = rand() % 100;
+        ASTEROIDR[i] = rand() % 5 + 2; // Random radius between 2 and 7
+    }
+    //Randomize();
     glutDisplayFunc(Display);
     glutKeyboardFunc(Keyboard);
     glutKeyboardUpFunc(KeyboardUp);
