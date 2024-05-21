@@ -13,6 +13,8 @@ int logWidth = 100;
 int logHeight = 100;
 float spos = -50;
 
+bool gameOver = false;
+
 bool moveUpWASD = false;
 bool moveDownWASD = false;
 bool moveLeftWASD = false;
@@ -30,6 +32,7 @@ float STARSy[1000];
 float ASTEROIDX[10];
 float ASTEROIDY[10];
 float ASTEROIDR[10];
+char gameOverText[50];
 
 void moveShip(int &ypos)
 {
@@ -42,9 +45,10 @@ void printTimer()
     char str[3];
     sprintf(str, "%d", gameTimer);
     glColor3f(1.0, 1.0, 1.0);
-    glRasterPos2d(48, 97);
+    glRasterPos2d(48, 95);
     for (int i = 0; i < strlen(str); i++)
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, str[i]);
+
     glFlush();
 }
 
@@ -131,19 +135,25 @@ class Player : public GameObject
 {
 private:
     int num;
-    int score;
+
+
 
 public:
+    int score;
+    char respawnString[50];
     int jumpTimer = 0;
     bool canShoot=true;
     bool jumping=false;
     bool jumpLock = false;
     bool right=true;
+    bool dead=false;
+    int health=10;
+    int deathTimer=0;
     std::vector<Bullet> bullets;
-    void incScore()
+    void addScore(int value)
 
     {
-        score++;
+        score+=value;
         glutPostRedisplay();
     }
     void moveLeft()
@@ -220,10 +230,10 @@ public:
         switch (num)
         {
         case 1:
-            glRasterPos2d(1, 97);
+            glRasterPos2d(1, 90);
             break;
         case 2:
-            glRasterPos2d(97 - (strlen(str)), 97);
+            glRasterPos2d(97 - 1.2*(strlen(str)), 90);
         }
         for (int i = 0; i < strlen(str); i++)
             glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, str[i]);
@@ -294,6 +304,7 @@ public:
     }
     void Gravity()
     {
+
         if (y < 11)
             y = 11;
         if(jumping){
@@ -341,13 +352,93 @@ public:
     }
     void Shoot(){
         if(canShoot){
-            printf("Player %d shot!\n",num);
             canShoot=false;
         if(right){
             bullets.push_back(Bullet(x+2,y+2,num,right));
         }
         else bullets.push_back(Bullet(x-2,y+2,num,right));
     }
+    }
+    void HealthBar(){
+
+    glBegin(GL_QUADS);
+    if(num==1){
+        //outer frame
+        glColor3f(0.5,0.5,0.5);
+
+        glVertex2i(1,93);
+        glVertex2i(1,98);
+        glVertex2i(43,98);
+        glVertex2i(43,93);
+
+        //red missing health
+
+        glColor3f(1.0,0.0,0.0);
+
+        glVertex2i(2,94);
+        glVertex2i(2,97);
+        glVertex2i(42,97);
+        glVertex2i(42,94);
+
+        //green health
+
+
+        glColor3f(0.0,1.0,0.0);
+
+        glVertex2i(2,94);
+        glVertex2i(2,97);
+        glVertex2i(2+4*health,97);
+        glVertex2i(2+4*health,94);
+    }
+    if(num==2){
+            //outer frame
+        glColor3f(0.5,0.5,0.5);
+
+        glVertex2i(56,93);
+        glVertex2i(56,98);
+        glVertex2i(98,98);
+        glVertex2i(98,93);
+
+        //red missing health
+
+        glColor3f(1.0,0.0,0.0);
+
+        glVertex2i(57,94);
+        glVertex2i(57,97);
+        glVertex2i(97,97);
+        glVertex2i(97,94);
+
+        //green health
+
+
+        glColor3f(0.0,1.0,0.0);
+
+        glVertex2i(97-4*health,94);
+        glVertex2i(97-4*health,97);
+        glVertex2i(97,97);
+        glVertex2i(97,94);
+
+    }
+    glEnd();
+
+    }
+    void respawnText(){
+        glColor3f(1.0, 1.0, 1.0);
+        if(dead && !gameOver)
+        sprintf(respawnString, "Respawning in: %d",deathTimer);
+        else sprintf(respawnString, "");
+
+        switch (num)
+        {
+        case 1:
+            glRasterPos2d(1, 3);
+            break;
+        case 2:
+            glRasterPos2d(79, 3);
+        }
+        for (int i = 0; i < strlen(respawnString); i++)
+            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, respawnString[i]);
+        glFlush();
     }
 };
 
@@ -407,6 +498,14 @@ void printSome(char *str, int x, int y)
     for (int i = 0; i < strlen(str); i++)
         glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, str[i]);
     glFlush();
+}
+
+void renderGameOver(){
+    glRasterPos2d(50-strlen(gameOverText), 50);
+    for (int i = 0; i < strlen(gameOverText); i++)
+        glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, gameOverText[i]);
+    glFlush();
+
 }
 
 void Display()
@@ -500,12 +599,15 @@ void Display()
     glEnd();
 
     glColor3f(1.0, 1.0, 0.0);         // Yellow color
-    DrawCircle(90.0, 80.0, 10.0, 30); // Draw sun
+    DrawCircle(90.0, 77.0, 10.0, 30); // Draw sun
 
     player1.Render();
     player2.Render();
     player1.printScore();
     player2.printScore();
+    player1.HealthBar();
+    player2.HealthBar();
+
     printTimer();
 
     for (size_t i = 0; i < terrainObjects.size(); ++i)
@@ -521,6 +623,10 @@ void Display()
     {
         player2.bullets[i].Render();
     }
+    player1.respawnText();
+    player2.respawnText();
+
+    renderGameOver();
 
     glutSwapBuffers();
     glFlush();
@@ -528,6 +634,16 @@ void Display()
 
 void updatePlayerMovement()
 {
+    if(gameOver){
+        player1.setX(-20);
+        player2.setX(120);
+    }
+    if(player1.dead){
+        player1.setX(-20);
+    }
+    if(player2.dead){
+        player2.setX(120);
+    }
     player1.Gravity();
     player2.Gravity();
     if (moveUpWASD && !player1.jumpLock){
@@ -570,15 +686,17 @@ void updatePlayerMovement()
         if(player1.bullets[i].right){
         player1.bullets[i].setX(player1.bullets[i].getX()+1.5f);
         if(player1.bullets[i].getX()+1.5f >=player2.getX()-2 && player1.bullets[i].getX()+1.5f <= player2.getX()+2 && player1.bullets[i].getY() >= player2.getY()-9 && player1.bullets[i].getY() <= player2.getY()+9){
-            player1.incScore();
+            player2.health--;
             player1.bullets.erase(player1.bullets.begin() + i);
+            glutPostRedisplay();
 
         }}
         else {
         player1.bullets[i].setX(player1.bullets[i].getX()-1.5f);
         if(player1.bullets[i].getX()-1.5f <=player2.getX()+2 && player1.bullets[i].getX()-1.5f >= player2.getX()-2 && player1.bullets[i].getY() >= player2.getY()-9 && player1.bullets[i].getY() <= player2.getY()+9){
-            player1.incScore();
+            player2.health--;
             player1.bullets.erase(player1.bullets.begin() + i);
+            glutPostRedisplay();
 
         }}
 
@@ -596,16 +714,18 @@ void updatePlayerMovement()
         if(player2.bullets[i].right){
         player2.bullets[i].setX(player2.bullets[i].getX()+1.5f);
         if(player2.bullets[i].getX()+1.5f >=player1.getX()-2 && player2.bullets[i].getX()+1.5f <= player1.getX()+2 && player2.bullets[i].getY() >= player1.getY()-9 && player2.bullets[i].getY() <= player1.getY()+9){
-            player2.incScore();
+            player1.health--;
             player2.bullets.erase(player2.bullets.begin() + i);
+            glutPostRedisplay();
 
         }}
 
         else{
         player2.bullets[i].setX(player2.bullets[i].getX()-1.5f);
         if(player2.bullets[i].getX()-1.5f <=player1.getX()+2 && player2.bullets[i].getX()-1.5f >= player1.getX()-2 && player2.bullets[i].getY() >= player1.getY()-9 && player2.bullets[i].getY() <= player1.getY()+9){
-            player2.incScore();
+            player1.health--;
             player2.bullets.erase(player2.bullets.begin() + i);
+            glutPostRedisplay();
 
         }}
 
@@ -620,20 +740,72 @@ void updatePlayerMovement()
         }
     }
 }
+
+int deathwait1=0;
+int deathwait2=0;
 void Timer(int value)
 {
+    if(player1.health<0)
+        player1.health=0;
+    if(player2.health<0)
+        player2.health=0;
+
+    if(player1.health==0 && !player1.dead){
+        player2.addScore(100);
+        player1.deathTimer=5;
+        player1.dead=true;
+    }
+    if(player2.health==0 && !player2.dead){
+
+        player1.addScore(100);
+        player2.deathTimer=5;
+        player2.dead=true;
+    }
     //every 10 frames
     updatePlayerMovement();
     ms+=10;
+    if(player1.dead) deathwait1+=10;
+    if(player2.dead) deathwait2+=10;
     spos+=0.01f;
     Randomize();
     //every 1s
     if(ms>=625){
-        if (gameTimer > 0)
+        if (!gameOver)
             gameTimer--;
 
         ms=0;
 
+    }
+
+    if(gameTimer<=0 && !gameOver){
+        gameOver=true;
+        terrainObjects.clear();
+        if(player1.score>player2.score)sprintf(gameOverText,"PLAYER 1 WINS");
+        if(player2.score>player1.score)sprintf(gameOverText,"PLAYER 2 WINS");
+        if(player1.score==player2.score) sprintf(gameOverText,"DRAW");
+    }
+    if(deathwait1>=625){
+        player1.deathTimer--;
+        if(player1.deathTimer==0){
+            player1.dead=false;
+            sprintf(player1.respawnString,"");
+            player1.health=10;
+            player1.setX(20);
+            player1.setY(120);
+        }
+        deathwait1=0;
+    }
+
+    if(deathwait2>=625){
+        player2.deathTimer--;
+        if(player2.deathTimer==0){
+            player2.dead=false;
+            sprintf(player2.respawnString,"");
+            player2.health=10;
+            player2.setX(80);
+            player2.setY(120);
+        }
+        deathwait2=0;
     }
 
     glutPostRedisplay();
@@ -649,7 +821,6 @@ void Keyboard(unsigned char key, int x, int y)
     if (key == 'd')
         moveRightWASD = true;
 
-    // Fire here, increments score for now
     if (key == 'q')
         player1.Shoot();
 
@@ -726,7 +897,7 @@ int main(int argc, char **argv)
     {
         ASTEROIDX[i] = rand() % 100;
         ASTEROIDY[i] = rand() % 100;
-        ASTEROIDR[i] = rand() % 5 + 2; // Random radius between 2 and 7
+        ASTEROIDR[i] = rand() % 5 + 2;
     }
     //Randomize();
     glutDisplayFunc(Display);
