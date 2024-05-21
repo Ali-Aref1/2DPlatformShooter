@@ -34,6 +34,8 @@ float ASTEROIDY[10];
 float ASTEROIDR[10];
 char gameOverText[50];
 
+float scoreSmooth=0;
+
 void moveShip(int &ypos)
 {
     ypos++;
@@ -230,10 +232,10 @@ public:
         switch (num)
         {
         case 1:
-            glRasterPos2d(1, 90);
+            glRasterPos2f(1, 90+scoreSmooth);
             break;
         case 2:
-            glRasterPos2d(97 - 1.2*(strlen(str)), 90);
+            glRasterPos2f(97 - 1.2*(strlen(str)), 90+scoreSmooth);
         }
         for (int i = 0; i < strlen(str); i++)
             glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, str[i]);
@@ -605,8 +607,10 @@ void Display()
     player2.Render();
     player1.printScore();
     player2.printScore();
+    if(!gameOver){
     player1.HealthBar();
     player2.HealthBar();
+    }
 
     printTimer();
 
@@ -761,6 +765,7 @@ void Timer(int value)
         player2.deathTimer=5;
         player2.dead=true;
     }
+    if(gameOver && scoreSmooth<5) scoreSmooth+=0.1f;
     //every 10 frames
     updatePlayerMovement();
     ms+=10;
