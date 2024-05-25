@@ -57,7 +57,7 @@ void printSome(char *str, int x, int y)
 
 
 
-int gameTimer = 3;
+int gameTimer = 90;
 void printTimer()
 {
     char str[3];
