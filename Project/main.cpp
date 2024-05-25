@@ -885,7 +885,7 @@ void RestartGame(){
         player2.setX(80);
         player2.setY(100);
         player1.right=true;
-        player1.right=false;
+        player2.right=false;
         scoreSmooth=0;
         player1.deathTimer=0;
         player2.deathTimer=0;
@@ -898,6 +898,7 @@ void RestartGame(){
 
 void Keyboard(unsigned char key, int x, int y)
 {
+    if(scene==1){
     if (key == 'w')
         moveUpWASD = true;
     if (key == 'a')
@@ -911,12 +912,15 @@ void Keyboard(unsigned char key, int x, int y)
     if (key == '0')
         player2.Shoot();
     if (key == 27) scene=0;
+
     else if(gameOver) RestartGame();
+    }
 
 }
 
 void KeyboardUp(unsigned char key, int x, int y)
 {
+    if (scene==1){
     if (key == 'w'){
         moveUpWASD = false;
         player1.jumpLock=false;
@@ -929,10 +933,12 @@ void KeyboardUp(unsigned char key, int x, int y)
         player1.canShoot=true;
     if (key == '0')
         player2.canShoot=true;
+    }
 }
 
 void specialKeyboard(int key, int x, int y)
 {
+    if (scene==1){
     if (key == GLUT_KEY_UP)
         moveUpArrow=true;
     if (key == GLUT_KEY_LEFT)
@@ -942,11 +948,12 @@ void specialKeyboard(int key, int x, int y)
     if (key == GLUT_KEY_INSERT)
         player2.Shoot();
     if(gameOver)RestartGame();
-
+    }
 }
 
 void specialKeyboardUp(int key, int x, int y)
 {
+    if(scene==1){
     if(key == GLUT_KEY_UP){
         moveUpArrow = false;
         player2.jumpLock=false;
@@ -957,6 +964,7 @@ void specialKeyboardUp(int key, int x, int y)
         moveRightArrow = false;
     if (key == GLUT_KEY_INSERT)
         player2.canShoot=true;
+    }
 }
 
 void mouseClick(int btn, int state, int x, int y)
