@@ -36,12 +36,28 @@ char gameOverText[50];
 
 float scoreSmooth=0;
 
+int scene=0;
+int mouseX;
+int mouseY;
+
 void moveShip(int &ypos)
 {
     ypos++;
 }
+void printSome(char *str, int x, int y)
+{
+    glColor3f(1.0, 1.0, 1.0);
+    glRasterPos2d(x, y);
+    for (int i = 0; i < strlen(str); i++)
+        glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, str[i]);
+    glFlush();
+}
 
-int gameTimer = 90;
+
+
+
+
+int gameTimer = 3;
 void printTimer()
 {
     char str[3];
@@ -53,7 +69,39 @@ void printTimer()
 
     glFlush();
 }
+class Button{
+private:
+    int x;
+    int y;
+    char text[20];
 
+public:
+    bool active=false;
+    int left;
+    int right;
+    int top;
+    int bottom;
+    Button(int x, int y, int w, int h, char text[20]){
+        this->x=x;
+        this->y=y;
+        sprintf(this->text,text);
+        left = x-w/2;
+        right = x+w/2;
+        top = y+h/2;
+        bottom = y-h/2;
+    }
+    void Render(){
+        if(active) glColor3f(0.4,0.4,1.0);
+        else glColor3f(0.0,0.0,1.0);
+        glBegin(GL_QUADS);
+            glVertex2f(left,bottom);
+            glVertex2f(left,top);
+            glVertex2f(right,top);
+            glVertex2f(right,bottom);
+        glEnd();
+        printSome(text,x-7,y-1);
+    }
+};
 class GameObject
 {
 public:
@@ -147,7 +195,7 @@ public:
     bool canShoot=true;
     bool jumping=false;
     bool jumpLock = false;
-    bool right=true;
+    bool right;
     bool dead=false;
     int health=10;
     int deathTimer=0;
@@ -247,6 +295,10 @@ public:
         this->x = x;
         this->y = y;
         score = 0;
+        switch(num){
+            case 1: right=true;break;
+            case 2: right=false;
+        }
     }
     bool isGrounded()
     {
@@ -444,7 +496,8 @@ public:
     }
 };
 
-
+Button StartButton(50,60,50,10, "Start Game");
+Button ExitButton(50,40,50,10, "Exit Game");
 
 Player player1(1, 20, 100);
 Player player2(2, 80, 100);
@@ -493,14 +546,6 @@ void DrawCircle(float cx, float cy, float r, int num_segments)
     glEnd();
 }
 
-void printSome(char *str, int x, int y)
-{
-    glColor3f(1.0, 1.0, 1.0);
-    glRasterPos2d(x, y);
-    for (int i = 0; i < strlen(str); i++)
-        glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, str[i]);
-    glFlush();
-}
 
 void renderGameOver(){
     glRasterPos2d(50-strlen(gameOverText), 50);
@@ -510,11 +555,11 @@ void renderGameOver(){
 
 }
 
-void Display()
-{
-    glClearColor(0, 0, 0, 1.0); // black color
-    glClear(GL_COLOR_BUFFER_BIT);
-
+void menuScene(){
+    StartButton.Render();
+    ExitButton.Render();
+}
+void gameScene(){
     glColor3f(1.0, 1.0, 1.0); // White color
     glPointSize(2.0);
     // Set point size for stars
@@ -631,6 +676,20 @@ void Display()
     player2.respawnText();
 
     renderGameOver();
+    if(gameOver){
+        printSome("Press any key to play again",31,40);
+        printSome("Press ESC to exit",38,30);
+    }
+}
+void Display()
+{
+    glClearColor(0, 0, 0, 1.0); // black color
+    glClear(GL_COLOR_BUFFER_BIT);
+    switch(scene){
+        case 0:menuScene();break;
+        case 1:gameScene();break;
+    }
+
 
     glutSwapBuffers();
     glFlush();
@@ -817,6 +876,26 @@ void Timer(int value)
     glutTimerFunc(10, Timer, 0);
 }
 
+void RestartGame(){
+        spos=-50;
+        gameTimer=90;
+        gameOver=false;
+        player1.setX(20);
+        player1.setY(100);
+        player2.setX(80);
+        player2.setY(100);
+        player1.right=true;
+        player1.right=false;
+        scoreSmooth=0;
+        player1.deathTimer=0;
+        player2.deathTimer=0;
+        strcpy(gameOverText,"");
+        terrainObjects.push_back(Terrain(50, 0, 100, 5));
+        terrainObjects.push_back(Terrain(20, 25, 20, 5));
+        terrainObjects.push_back(Terrain(80, 25, 20, 5));
+        terrainObjects.push_back(Terrain(50, 50, 20, 5));
+}
+
 void Keyboard(unsigned char key, int x, int y)
 {
     if (key == 'w')
@@ -831,6 +910,9 @@ void Keyboard(unsigned char key, int x, int y)
 
     if (key == '0')
         player2.Shoot();
+    if (key == 27) scene=0;
+    else if(gameOver) RestartGame();
+
 }
 
 void KeyboardUp(unsigned char key, int x, int y)
@@ -859,6 +941,8 @@ void specialKeyboard(int key, int x, int y)
         moveRightArrow = true;
     if (key == GLUT_KEY_INSERT)
         player2.Shoot();
+    if(gameOver)RestartGame();
+
 }
 
 void specialKeyboardUp(int key, int x, int y)
@@ -873,6 +957,40 @@ void specialKeyboardUp(int key, int x, int y)
         moveRightArrow = false;
     if (key == GLUT_KEY_INSERT)
         player2.canShoot=true;
+}
+
+void mouseClick(int btn, int state, int x, int y)
+{
+    if(scene==0){
+        if(btn==GLUT_LEFT_BUTTON && state==GLUT_DOWN) {
+        mouseX = x; mouseX=0.5+1.0*mouseX*logWidth/phyWidth;
+        mouseY = phyHeight- y;mouseY=0.5+1.0*mouseY*logHeight/phyHeight;
+        if(StartButton.active){
+            if(gameOver || gameTimer<90)RestartGame();
+            scene=1;
+        }
+        if(ExitButton.active)
+            exit(1);
+        if(btn==GLUT_RIGHT_BUTTON && state==GLUT_DOWN) {
+        }
+    }
+glutPostRedisplay();
+}
+}
+
+void passiveMouse (int x,int y){
+    mouseX = x;
+    mouseX=0.5+1.0*mouseX*logWidth/phyWidth;
+    mouseY = phyHeight - y;
+    mouseY=0.5+1.0*mouseY*logHeight/phyHeight;
+    if(mouseX>=StartButton.left && mouseX<=StartButton.right && mouseY>=StartButton.bottom && mouseY<=StartButton.top)
+        StartButton.active=true;
+    else StartButton.active=false;
+    if(mouseX>=ExitButton.left && mouseX<=ExitButton.right && mouseY>=ExitButton.bottom && mouseY<=ExitButton.top)
+        ExitButton.active=true;
+    else ExitButton.active=false;
+    glutPostRedisplay();
+
 }
 
 void createTerrainObjects()
@@ -908,6 +1026,8 @@ int main(int argc, char **argv)
     glutDisplayFunc(Display);
     glutKeyboardFunc(Keyboard);
     glutKeyboardUpFunc(KeyboardUp);
+    glutMouseFunc(mouseClick);
+    glutPassiveMotionFunc(passiveMouse);
     glutSpecialFunc(specialKeyboard);
     glutSpecialUpFunc(specialKeyboardUp);
     glutTimerFunc(50, Timer, 0);
